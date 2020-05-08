@@ -42,11 +42,14 @@ type SecretVariableSource struct {
 
 // BOSHDeploymentSpec defines the desired state of BOSHDeployment
 type BOSHDeploymentSpec struct {
-	Repo       string           `json:"repo"`
-	Ref        string           `json:"ref"`
-	Entrypoint string           `json:"entrypoint"`
-	Ops        []string         `json:"ops,omitempty"`
-	Vars       []VariableSource `json:"vars,omitempty"`
+	Repo       string `json:"repo"`
+	Ref        string `json:"ref"`
+	Entrypoint string `json:"entrypoint"`
+
+	Director string `json:"director,omitempty"`
+
+	Ops  []string         `json:"ops,omitempty"`
+	Vars []VariableSource `json:"vars,omitempty"`
 }
 
 // BOSHDeploymentStatus defines the observed state of BOSHDeployment

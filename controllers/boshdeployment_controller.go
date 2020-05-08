@@ -64,6 +64,9 @@ func (r *BOSHDeploymentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 	}
 
 	jobName := fmt.Sprintf("deploy-%s-bosh", req.Name)
+	if instance.Spec.Director != "" {
+		jobName = fmt.Sprintf("deploy-%s-to-%s", req.Name, instance.Spec.Director)
+	}
 	stateVolumeName := fmt.Sprintf("%s-state", req.Name)
 	stateConfigMapName := fmt.Sprintf("%s-state", req.Name)
 	secretName := fmt.Sprintf("%s-secrets", req.Name)
@@ -148,6 +151,60 @@ func (r *BOSHDeploymentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 				Name:  "GLUON_director_name", // FIXME
 				Value: req.Name,
 			},
+		}
+
+		if instance.Spec.Director != "" {
+			directorSecretName := fmt.Sprintf("%s-secrets", instance.Spec.Director)
+			vars = append(vars, corev1.EnvVar{
+				Name: "BOSH_ENVIRONMENT",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: directorSecretName,
+						},
+						Key: "endpoint",
+					},
+				},
+			})
+			vars = append(vars, corev1.EnvVar{
+				Name: "BOSH_CLIENT",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: directorSecretName,
+						},
+						Key: "username",
+					},
+				},
+			})
+			vars = append(vars, corev1.EnvVar{
+				Name: "BOSH_CLIENT_SECRET",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: directorSecretName,
+						},
+						Key: "password",
+					},
+				},
+			})
+			vars = append(vars, corev1.EnvVar{
+				Name: "BOSH_CA_CERT",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: directorSecretName,
+						},
+						Key: "ca",
+					},
+				},
+			})
+
+			// track original BOSHDeployment spec.Name as the deployment
+			vars = append(vars, corev1.EnvVar{
+				Name:  "BOSH_DEPLOYMENT",
+				Value: req.Name,
+			})
 		}
 
 		// set up variable source references
