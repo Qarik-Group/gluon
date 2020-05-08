@@ -1,4 +1,4 @@
-apiVersion: bosh.gluon.starkandwayne.com/v1alpha1
+apiVersion: gluon.starkandwayne.com/v1alpha1
 kind: BOSHDeployment
 metadata:
   name: boshdeployment-sample

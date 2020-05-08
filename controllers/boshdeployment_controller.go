@@ -43,8 +43,8 @@ type BOSHDeploymentReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=bosh.gluon.starkandwayne.com,resources=boshdeployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=bosh.gluon.starkandwayne.com,resources=boshdeployments/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=gluon.starkandwayne.com,resources=boshdeployments,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=gluon.starkandwayne.com,resources=boshdeployments/status,verbs=get;update;patch
 
 func (r *BOSHDeploymentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()

@@ -5,7 +5,7 @@ metadata:
   name: boshdeployment-editor-role
 rules:
 - apiGroups:
-  - bosh.gluon.starkandwayne.com
+  - gluon.starkandwayne.com
   resources:
   - boshdeployments
   verbs:
@@ -17,7 +17,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - bosh.gluon.starkandwayne.com
+  - gluon.starkandwayne.com
   resources:
   - boshdeployments/status
   verbs:

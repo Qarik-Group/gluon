@@ -2,7 +2,7 @@
 # since it depends on service name and namespace that are out of this kustomize package.
 # It should be run by config/default
 resources:
-- bases/bosh.gluon.starkandwayne.com_boshdeployments.yaml
+- bases/gluon.starkandwayne.com_boshdeployments.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

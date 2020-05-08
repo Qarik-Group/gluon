@@ -1,7 +1,7 @@
-domain: gluon.starkandwayne.com
+domain: starkandwayne.com
 repo: github.com/starkandwayne/gluon-controller
 resources:
-- group: bosh
+- group: gluon
   kind: BOSHDeployment
   version: v1alpha1
 version: "2"

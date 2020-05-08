@@ -1,0 +1,101 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.5
+  creationTimestamp: null
+  name: boshdeployments.gluon.starkandwayne.com
+spec:
+  group: gluon.starkandwayne.com
+  names:
+    kind: BOSHDeployment
+    listKind: BOSHDeploymentList
+    plural: boshdeployments
+    singular: boshdeployment
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      description: BOSHDeployment is the Schema for the boshdeployments API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: BOSHDeploymentSpec defines the desired state of BOSHDeployment
+          properties:
+            entrypoint:
+              type: string
+            ops:
+              items:
+                type: string
+              type: array
+            ref:
+              type: string
+            repo:
+              type: string
+            vars:
+              items:
+                description: VariableSource defines where variables for a deployment
+                  come from
+                properties:
+                  configMap:
+                    description: ConfigMapVariableSource ties a VariableSource to
+                      a ConfigMap
+                    properties:
+                      name:
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  name:
+                    type: string
+                  secret:
+                    description: SecretVariableSource ties a VariableSource to a Secret
+                    properties:
+                      name:
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  value:
+                    type: string
+                required:
+                - configMap
+                - name
+                - secret
+                - value
+                type: object
+              type: array
+          required:
+          - entrypoint
+          - ops
+          - ref
+          - repo
+          - vars
+          type: object
+        status:
+          description: BOSHDeploymentStatus defines the observed state of BOSHDeployment
+          type: object
+      type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
