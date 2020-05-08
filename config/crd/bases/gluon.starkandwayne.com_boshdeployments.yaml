@@ -65,6 +65,10 @@ spec:
                   secret:
                     description: SecretVariableSource ties a VariableSource to a Secret
                     properties:
+                      mapKeys:
+                        additionalProperties:
+                          type: string
+                        type: object
                       name:
                         type: string
                     required:

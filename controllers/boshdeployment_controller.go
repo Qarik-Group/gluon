@@ -139,8 +139,12 @@ func (r *BOSHDeploymentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 		}
 
 		// set up variable source references
+		type secRef struct {
+			secret string
+			key    string
+		}
+		secRefs := make(map[string]secRef)
 		cmRefs := make(map[string]string)
-		secRefs := make(map[string]string)
 		for _, src := range instance.Spec.Vars {
 			// name/value literal
 			if src.Name != "" {
@@ -173,8 +177,22 @@ func (r *BOSHDeploymentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 					return ctrl.Result{}, err
 				}
 
-				for k := range secret.Data {
-					secRefs[k] = src.Secret.Name
+				if src.Secret.MapKeys != nil {
+					// map just the keys to their variables
+					for k, variable := range src.Secret.MapKeys {
+						secRefs[variable] = secRef{
+							secret: src.Secret.Name,
+							key:    k,
+						}
+					}
+				} else {
+					// take everything as a 1:1 key->var relation
+					for k := range secret.Data {
+						secRefs[k] = secRef{
+							secret: src.Secret.Name,
+							key:    k,
+						}
+					}
 				}
 				continue
 			}
@@ -202,9 +220,9 @@ func (r *BOSHDeploymentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: src,
+							Name: src.secret,
 						},
-						Key: k,
+						Key: src.key,
 					},
 				},
 			})

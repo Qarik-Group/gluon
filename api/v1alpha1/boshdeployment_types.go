@@ -36,7 +36,8 @@ type ConfigMapVariableSource struct {
 
 // SecretVariableSource ties a VariableSource to a Secret
 type SecretVariableSource struct {
-	Name string `json:"name"`
+	Name    string            `json:"name"`
+	MapKeys map[string]string `json:"mapKeys,omitempty"`
 }
 
 // BOSHDeploymentSpec defines the desired state of BOSHDeployment
