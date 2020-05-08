@@ -20,16 +20,32 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+// VariableSource defines where variables for a deployment come from
+type VariableSource struct {
+	ConfigMap ConfigMapVariableSource `json:"configMap"`
+	Secret    SecretVariableSource    `json:"secret"`
+
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+// ConfigMapVariableSource ties a VariableSource to a ConfigMap
+type ConfigMapVariableSource struct {
+	Name string `json:"name"`
+}
+
+// SecretVariableSource ties a VariableSource to a Secret
+type SecretVariableSource struct {
+	Name string `json:"name"`
+}
 
 // BOSHDeploymentSpec defines the desired state of BOSHDeployment
 type BOSHDeploymentSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Foo is an example field of BOSHDeployment. Edit BOSHDeployment_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	Repo       string           `json:"repo"`
+	Ref        string           `json:"ref"`
+	Entrypoint string           `json:"entrypoint"`
+	Ops        []string         `json:"ops"`
+	Vars       []VariableSource `json:"vars"`
 }
 
 // BOSHDeploymentStatus defines the observed state of BOSHDeployment
