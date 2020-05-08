@@ -68,7 +68,7 @@ func (r *BOSHDeploymentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 	stateConfigMapName := fmt.Sprintf("%s-state", req.Name)
 	secretName := fmt.Sprintf("%s-secrets", req.Name)
 
-	// FIXME: make the pvc!
+	// first we make a volume for our state files / creds / vars
 	stateVolume := &corev1.PersistentVolumeClaim{}
 	err = r.Client.Get(context.TODO(), types.NamespacedName{Namespace: req.Namespace, Name: stateVolumeName}, stateVolume)
 	if err != nil && errors.IsNotFound(err) {
@@ -91,6 +91,18 @@ func (r *BOSHDeploymentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 				},
 			},
 		}
+
+		if err := controllerutil.SetControllerReference(instance, stateVolume, r.Scheme); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		err = r.Client.Create(context.TODO(), stateVolume)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		// pvc created.
+		// (but we still have more work to do!)
 
 	} else if err != nil {
 		return ctrl.Result{}, err
