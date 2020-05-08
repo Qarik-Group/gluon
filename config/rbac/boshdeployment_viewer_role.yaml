@@ -1,0 +1,20 @@
+# permissions for end users to view boshdeployments.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: boshdeployment-viewer-role
+rules:
+- apiGroups:
+  - bosh.gluon.starkandwayne.com
+  resources:
+  - boshdeployments
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bosh.gluon.starkandwayne.com
+  resources:
+  - boshdeployments/status
+  verbs:
+  - get
