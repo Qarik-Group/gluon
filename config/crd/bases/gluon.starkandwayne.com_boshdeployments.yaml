@@ -13,6 +13,8 @@ spec:
     kind: BOSHDeployment
     listKind: BOSHDeploymentList
     plural: boshdeployments
+    shortNames:
+    - bosh
     singular: boshdeployment
   scope: Namespaced
   validation:
@@ -70,19 +72,12 @@ spec:
                     type: object
                   value:
                     type: string
-                required:
-                - configMap
-                - name
-                - secret
-                - value
                 type: object
               type: array
           required:
           - entrypoint
-          - ops
           - ref
           - repo
-          - vars
           type: object
         status:
           description: BOSHDeploymentStatus defines the observed state of BOSHDeployment

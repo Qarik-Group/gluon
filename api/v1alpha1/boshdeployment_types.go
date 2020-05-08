@@ -22,11 +22,11 @@ import (
 
 // VariableSource defines where variables for a deployment come from
 type VariableSource struct {
-	ConfigMap ConfigMapVariableSource `json:"configMap"`
-	Secret    SecretVariableSource    `json:"secret"`
+	ConfigMap ConfigMapVariableSource `json:"configMap,omitempty"`
+	Secret    SecretVariableSource    `json:"secret,omitempty"`
 
-	Name  string `json:"name"`
-	Value string `json:"value"`
+	Name  string `json:"name,omitempty"`
+	Value string `json:"value,omitempty"`
 }
 
 // ConfigMapVariableSource ties a VariableSource to a ConfigMap
@@ -44,8 +44,8 @@ type BOSHDeploymentSpec struct {
 	Repo       string           `json:"repo"`
 	Ref        string           `json:"ref"`
 	Entrypoint string           `json:"entrypoint"`
-	Ops        []string         `json:"ops"`
-	Vars       []VariableSource `json:"vars"`
+	Ops        []string         `json:"ops,omitempty"`
+	Vars       []VariableSource `json:"vars,omitempty"`
 }
 
 // BOSHDeploymentStatus defines the observed state of BOSHDeployment
@@ -57,6 +57,7 @@ type BOSHDeploymentStatus struct {
 // +kubebuilder:object:root=true
 
 // BOSHDeployment is the Schema for the boshdeployments API
+// +kubebuilder:resource:path=boshdeployments,scope=Namespaced,shortName=bosh
 type BOSHDeployment struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
