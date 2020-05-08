@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -213,8 +214,13 @@ func (r *BOSHDeploymentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 		command := make([]string, len(instance.Spec.Ops)*2+1)
 		command[0] = "deploy"
 		for i, op := range instance.Spec.Ops {
+			file := op
+			if !strings.HasSuffix(file, ".yml") && !strings.HasSuffix(file, ".yaml") {
+				file = fmt.Sprintf("%s.yml", op)
+			}
+
 			command[1+i*2] = "-o"
-			command[1+i*2+1] = fmt.Sprintf("%s.yml", op)
+			command[1+i*2+1] = file
 		}
 
 		// create the Job resource, in all of its glory
