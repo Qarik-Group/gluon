@@ -26,7 +26,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	boshv1alpha1 "github.com/starkandwayne/gluon-controller/api/v1alpha1"
 	gluonv1alpha1 "github.com/starkandwayne/gluon-controller/api/v1alpha1"
 	"github.com/starkandwayne/gluon-controller/controllers"
 	// +kubebuilder:scaffold:imports
@@ -40,7 +39,6 @@ var (
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 
-	_ = boshv1alpha1.AddToScheme(scheme)
 	_ = gluonv1alpha1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }

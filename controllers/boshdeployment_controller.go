@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	boshv1alpha1 "github.com/starkandwayne/gluon-controller/api/v1alpha1"
+	v1alpha1 "github.com/starkandwayne/gluon-controller/api/v1alpha1"
 )
 
 // BOSHDeploymentReconciler reconciles a BOSHDeployment object
@@ -52,7 +52,7 @@ func (r *BOSHDeploymentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 	_ = r.Log.WithValues("boshdeployment", req.NamespacedName)
 
 	// fetch the BOSHDeployment instance
-	instance := &boshv1alpha1.BOSHDeployment{}
+	instance := &v1alpha1.BOSHDeployment{}
 	err := r.Client.Get(context.TODO(), req.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -376,6 +376,6 @@ func (r *BOSHDeploymentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 
 func (r *BOSHDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&boshv1alpha1.BOSHDeployment{}).
+		For(&v1alpha1.BOSHDeployment{}).
 		Complete(r)
 }
