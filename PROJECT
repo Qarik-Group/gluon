@@ -4,4 +4,7 @@ resources:
 - group: gluon
   kind: BOSHDeployment
   version: v1alpha1
+- group: gluon
+  kind: BOSHStemcell
+  version: v1alpha1
 version: "2"

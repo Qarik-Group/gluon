@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	boshv1alpha1 "github.com/starkandwayne/gluon-controller/api/v1alpha1"
+	gluonv1alpha1 "github.com/starkandwayne/gluon-controller/api/v1alpha1"
 	"github.com/starkandwayne/gluon-controller/controllers"
 	// +kubebuilder:scaffold:imports
 )
@@ -40,6 +41,7 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 
 	_ = boshv1alpha1.AddToScheme(scheme)
+	_ = gluonv1alpha1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -72,6 +74,14 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "BOSHDeployment")
+		os.Exit(1)
+	}
+	if err = (&controllers.BOSHStemcellReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("BOSHStemcell"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "BOSHStemcell")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

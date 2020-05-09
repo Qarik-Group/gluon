@@ -1,0 +1,20 @@
+# permissions for end users to view boshstemcells.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: boshstemcell-viewer-role
+rules:
+- apiGroups:
+  - gluon.starkandwayne.com
+  resources:
+  - boshstemcells
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - gluon.starkandwayne.com
+  resources:
+  - boshstemcells/status
+  verbs:
+  - get

@@ -26,3 +26,23 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - gluon.starkandwayne.com
+  resources:
+  - boshstemcells
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - gluon.starkandwayne.com
+  resources:
+  - boshstemcells/status
+  verbs:
+  - get
+  - patch
+  - update
