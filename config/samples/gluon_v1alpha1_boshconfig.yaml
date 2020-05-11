@@ -1,0 +1,7 @@
+apiVersion: gluon.starkandwayne.com/v1alpha1
+kind: BOSHConfig
+metadata:
+  name: boshconfig-sample
+spec:
+  # Add fields here
+  foo: bar

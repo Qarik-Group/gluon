@@ -1,0 +1,24 @@
+# permissions for end users to edit boshconfigs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: boshconfig-editor-role
+rules:
+- apiGroups:
+  - gluon.starkandwayne.com
+  resources:
+  - boshconfigs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - gluon.starkandwayne.com
+  resources:
+  - boshconfigs/status
+  verbs:
+  - get

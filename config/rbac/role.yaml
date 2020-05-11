@@ -9,6 +9,26 @@ rules:
 - apiGroups:
   - gluon.starkandwayne.com
   resources:
+  - boshconfigs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - gluon.starkandwayne.com
+  resources:
+  - boshconfigs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gluon.starkandwayne.com
+  resources:
   - boshdeployments
   verbs:
   - create

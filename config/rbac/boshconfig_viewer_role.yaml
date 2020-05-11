@@ -1,0 +1,20 @@
+# permissions for end users to view boshconfigs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: boshconfig-viewer-role
+rules:
+- apiGroups:
+  - gluon.starkandwayne.com
+  resources:
+  - boshconfigs
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - gluon.starkandwayne.com
+  resources:
+  - boshconfigs/status
+  verbs:
+  - get

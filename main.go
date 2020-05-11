@@ -82,6 +82,14 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "BOSHStemcell")
 		os.Exit(1)
 	}
+	if err = (&controllers.BOSHConfigReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("BOSHConfig"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "BOSHConfig")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
 
 	setupLog.Info("starting manager")

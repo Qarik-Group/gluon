@@ -7,4 +7,7 @@ resources:
 - group: gluon
   kind: BOSHStemcell
   version: v1alpha1
+- group: gluon
+  kind: BOSHConfig
+  version: v1alpha1
 version: "2"
