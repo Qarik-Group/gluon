@@ -27,6 +27,7 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -88,9 +89,17 @@ func (r *BOSHStemcellReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 		jobName := fmt.Sprintf("upload-%s-to-%s", req.Name, director.Name)
 		directorSecretName := fmt.Sprintf("%s-secrets", director.Name)
 
+		job := &batchv1.Job{}
+		err = r.Client.Get(context.TODO(), types.NamespacedName{Namespace: req.Namespace, Name: jobName}, job)
+		if err == nil || !errors.IsNotFound(err) {
+			// already got a job; don't need another one
+			// (or something bad happened, which we cannot handle right now)
+			continue
+		}
+
 		// create the Job resource, in all of its glory
 		var one int32 = 1
-		job := &batchv1.Job{
+		job = &batchv1.Job{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: req.Namespace,
 				Name:      jobName,
