@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -46,12 +45,12 @@ type BOSHConfigReconciler struct {
 // +kubebuilder:rbac:groups=gluon.starkandwayne.com,resources=boshconfigs/status,verbs=get;update;patch
 
 func (r *BOSHConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	_ = context.Background()
-	_ = r.Log.WithValues("boshconfig", req.NamespacedName)
+	ctx := context.Background()
+	log := r.Log.WithValues("boshconfig", req.NamespacedName)
 
 	// fetch the BOSHConfig instance
 	instance := &v1alpha1.BOSHConfig{}
-	err := r.Client.Get(context.TODO(), req.NamespacedName, instance)
+	err := r.Client.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// that's ok, maybe someone got cold feet and deleted it.
@@ -61,15 +60,28 @@ func (r *BOSHConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 		return ctrl.Result{}, err
 	}
 
+	// check to see if our dependencies are resolved
+	log.Info("checking dependencies")
+	if ok, info, err := instance.Dependencies.Resolved(r.Client, req.Namespace); !ok {
+		if err != nil {
+			log.Info("failed to determine if dependencies are resolved", "dependency", info, "error", err)
+		} else {
+			log.Info("dependencies not yet resolved", "dependency", info)
+		}
+		return instance.Dependencies.Requeue(), err
+	}
+
 	// create the ConfigMap for this BOSHConfig
+	log.Info("checking for backing config map", "configmap", instance.Name)
 	config := &corev1.ConfigMap{}
-	err = r.Client.Get(context.TODO(), req.NamespacedName, config)
+	err = r.Client.Get(ctx, types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name}, config)
 	if err != nil {
 		if errors.IsNotFound(err) {
+			log.Info("creating backing config map", "configmap", instance.Name)
 			config = &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: req.Namespace,
-					Name:      req.Name,
+					Namespace: instance.Namespace,
+					Name:      instance.Name,
 				},
 				Data: map[string]string{
 					"config.yml": instance.Spec.Config,
@@ -80,148 +92,53 @@ func (r *BOSHConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 				return ctrl.Result{}, err
 			}
 
-			err = r.Client.Create(context.TODO(), config)
+			err = r.Client.Create(ctx, config)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
-
-			// configmap created.
 
 		} else {
 			return ctrl.Result{}, err
 		}
 	}
 
-	command := []string{
-		"bosh",
-		"update-config",
-		"-n",
-		"--name",
-		req.Name,
-		"--type",
-		instance.Spec.Type,
-		"/bosh/config/config.yml",
-	}
-
-	directors := &v1alpha1.BOSHDeploymentList{}
-	err = r.Client.List(context.TODO(), directors, client.InNamespace(req.Namespace), client.MatchingLabels(instance.Spec.ApplyTo))
+	// retrieve our upstream director
+	director := &v1alpha1.BOSHDeployment{}
+	err = r.Client.Get(ctx, types.NamespacedName{Namespace: req.Namespace, Name: instance.Spec.Director}, director)
 	if err != nil {
+		if errors.IsNotFound(err) {
+			// director was there once, but is gone now
+			return ctrl.Result{}, nil
+		}
 		return ctrl.Result{}, err
 	}
-	for _, director := range directors.Items {
-		jobName := fmt.Sprintf("update-config-%s-on-%s", req.Name, director.Name)
-		directorSecretName := fmt.Sprintf("%s-secrets", director.Name)
 
-		job := &batchv1.Job{}
-		err = r.Client.Get(context.TODO(), types.NamespacedName{Namespace: req.Namespace, Name: jobName}, job)
-		if err == nil || !errors.IsNotFound(err) {
-			// already got a job; don't need another one
-			// (or something bad happened, which we cannot handle right now)
-			continue
+	job := &batchv1.Job{}
+	err = r.Client.Get(ctx, types.NamespacedName{Namespace: req.Namespace, Name: instance.JobName(director)}, job)
+	if err == nil {
+		// job exists; we may have gotten a reconcile request based on our watch(es)
+		instance.Status.Ready, instance.Status.State = v1alpha1.DetermineReadiness(job)
+		if err := r.Update(ctx, instance); err != nil {
+			return ctrl.Result{}, err
+		}
+
+	} else if !errors.IsNotFound(err) {
+		return ctrl.Result{}, err
+
+	} else {
+		instance.Status.Ready, instance.Status.State = v1alpha1.DetermineReadiness(nil)
+		if err := r.Update(ctx, instance); err != nil {
+			return ctrl.Result{}, err
 		}
 
 		// create the Job resource, in all of its glory
-		var one int32 = 1
-		job = &batchv1.Job{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: req.Namespace,
-				Name:      jobName,
-			},
-			Spec: batchv1.JobSpec{
-				Parallelism:  &one,
-				Completions:  &one,
-				BackoffLimit: &one,
-				//TTLSecondsAfterFinished
-				Template: corev1.PodTemplateSpec{
-					Spec: corev1.PodSpec{
-						RestartPolicy: corev1.RestartPolicyNever,
-						Volumes: []corev1.Volume{
-							corev1.Volume{
-								Name: "config",
-								VolumeSource: corev1.VolumeSource{
-									ConfigMap: &corev1.ConfigMapVolumeSource{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: req.Name,
-										},
-									},
-								},
-							},
-						},
-						Containers: []corev1.Container{
-							corev1.Container{
-								Name:            "update-config",
-								Image:           "starkandwayne/bosh-create-env:latest",
-								ImagePullPolicy: corev1.PullAlways,
-								Command:         command,
-								VolumeMounts: []corev1.VolumeMount{
-									corev1.VolumeMount{
-										Name:      "config",
-										MountPath: "/bosh/config",
-										ReadOnly:  true,
-									},
-								},
-								Env: []corev1.EnvVar{
-									corev1.EnvVar{
-										Name: "BOSH_ENVIRONMENT",
-										ValueFrom: &corev1.EnvVarSource{
-											SecretKeyRef: &corev1.SecretKeySelector{
-												LocalObjectReference: corev1.LocalObjectReference{
-													Name: directorSecretName,
-												},
-												Key: "endpoint",
-											},
-										},
-									},
-									corev1.EnvVar{
-										Name: "BOSH_CLIENT",
-										ValueFrom: &corev1.EnvVarSource{
-											SecretKeyRef: &corev1.SecretKeySelector{
-												LocalObjectReference: corev1.LocalObjectReference{
-													Name: directorSecretName,
-												},
-												Key: "username",
-											},
-										},
-									},
-									corev1.EnvVar{
-										Name: "BOSH_CLIENT_SECRET",
-										ValueFrom: &corev1.EnvVarSource{
-											SecretKeyRef: &corev1.SecretKeySelector{
-												LocalObjectReference: corev1.LocalObjectReference{
-													Name: directorSecretName,
-												},
-												Key: "password",
-											},
-										},
-									},
-									corev1.EnvVar{
-										Name: "BOSH_CA_CERT",
-										ValueFrom: &corev1.EnvVarSource{
-											SecretKeyRef: &corev1.SecretKeySelector{
-												LocalObjectReference: corev1.LocalObjectReference{
-													Name: directorSecretName,
-												},
-												Key: "ca",
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		}
+		job := instance.Job(director)
 		if err := controllerutil.SetControllerReference(instance, job, r.Scheme); err != nil {
 			return ctrl.Result{}, err
 		}
-
-		err = r.Client.Create(context.TODO(), job)
-		if err != nil {
+		if err = r.Client.Create(ctx, job); err != nil {
 			return ctrl.Result{}, err
 		}
-
-		// job created.
 	}
 
 	return ctrl.Result{}, nil
@@ -230,5 +147,6 @@ func (r *BOSHConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 func (r *BOSHConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.BOSHConfig{}).
+		Owns(&batchv1.Job{}).
 		Complete(r)
 }

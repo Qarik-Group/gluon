@@ -18,11 +18,8 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
 	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -46,12 +43,12 @@ type BOSHStemcellReconciler struct {
 // +kubebuilder:rbac:groups=gluon.starkandwayne.com,resources=boshstemcells/status,verbs=get;update;patch
 
 func (r *BOSHStemcellReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	_ = context.Background()
-	_ = r.Log.WithValues("boshstemcell", req.NamespacedName)
+	ctx := context.Background()
+	log := r.Log.WithValues("boshstemcell", req.NamespacedName)
 
 	// fetch the BOSHStemcell instance
 	instance := &v1alpha1.BOSHStemcell{}
-	err := r.Client.Get(context.TODO(), req.NamespacedName, instance)
+	err := r.Client.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// that's ok, maybe someone got cold feet and deleted it.
@@ -61,121 +58,51 @@ func (r *BOSHStemcellReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 		return ctrl.Result{}, err
 	}
 
-	command := []string{
-		"bosh",
-		"upload-stemcell",
-		instance.Spec.URL,
-		"--sha1",
-		instance.Spec.SHA1,
-	}
-	if instance.Spec.Name != "" {
-		command = append(command, "--name")
-		command = append(command, instance.Spec.Name)
-	}
-	if instance.Spec.Version != "" {
-		command = append(command, "--version")
-		command = append(command, instance.Spec.Version)
-	}
-	if instance.Spec.Fix {
-		command = append(command, "--fix")
+	// check to see if our dependencies are resolved
+	log.Info("checking dependencies")
+	if ok, info, err := instance.Dependencies.Resolved(r.Client, instance.Namespace); !ok {
+		if err != nil {
+			log.Info("failed to determine if dependencies are resolved", "dependency", info, "error", err)
+		} else {
+			log.Info("dependencies not yet resolved", "dependency", info)
+		}
+		return instance.Dependencies.Requeue(), err
 	}
 
-	directors := &v1alpha1.BOSHDeploymentList{}
-	err = r.Client.List(context.TODO(), directors, client.InNamespace(req.Namespace), client.MatchingLabels(instance.Spec.UploadTo))
+	director := &v1alpha1.BOSHDeployment{}
+	err = r.Client.Get(ctx, types.NamespacedName{Namespace: instance.Namespace, Name: instance.Spec.Director}, director)
 	if err != nil {
+		if errors.IsNotFound(err) {
+			// director was there once, but is gone now
+			return ctrl.Result{}, nil
+		}
 		return ctrl.Result{}, err
 	}
-	for _, director := range directors.Items {
-		jobName := fmt.Sprintf("upload-%s-to-%s", req.Name, director.Name)
-		directorSecretName := fmt.Sprintf("%s-secrets", director.Name)
 
-		job := &batchv1.Job{}
-		err = r.Client.Get(context.TODO(), types.NamespacedName{Namespace: req.Namespace, Name: jobName}, job)
-		if err == nil || !errors.IsNotFound(err) {
-			// already got a job; don't need another one
-			// (or something bad happened, which we cannot handle right now)
-			continue
-		}
-
-		// create the Job resource, in all of its glory
-		var one int32 = 1
-		job = &batchv1.Job{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: req.Namespace,
-				Name:      jobName,
-			},
-			Spec: batchv1.JobSpec{
-				Parallelism:  &one,
-				Completions:  &one,
-				BackoffLimit: &one,
-				//TTLSecondsAfterFinished
-				Template: corev1.PodTemplateSpec{
-					Spec: corev1.PodSpec{
-						RestartPolicy: corev1.RestartPolicyNever,
-						Containers: []corev1.Container{
-							corev1.Container{
-								Name:            "upload",
-								Image:           "starkandwayne/bosh-create-env:latest",
-								ImagePullPolicy: corev1.PullAlways,
-								Command:         command,
-								Env: []corev1.EnvVar{
-									corev1.EnvVar{
-										Name: "BOSH_ENVIRONMENT",
-										ValueFrom: &corev1.EnvVarSource{
-											SecretKeyRef: &corev1.SecretKeySelector{
-												LocalObjectReference: corev1.LocalObjectReference{
-													Name: directorSecretName,
-												},
-												Key: "endpoint",
-											},
-										},
-									},
-									corev1.EnvVar{
-										Name: "BOSH_CLIENT",
-										ValueFrom: &corev1.EnvVarSource{
-											SecretKeyRef: &corev1.SecretKeySelector{
-												LocalObjectReference: corev1.LocalObjectReference{
-													Name: directorSecretName,
-												},
-												Key: "username",
-											},
-										},
-									},
-									corev1.EnvVar{
-										Name: "BOSH_CLIENT_SECRET",
-										ValueFrom: &corev1.EnvVarSource{
-											SecretKeyRef: &corev1.SecretKeySelector{
-												LocalObjectReference: corev1.LocalObjectReference{
-													Name: directorSecretName,
-												},
-												Key: "password",
-											},
-										},
-									},
-									corev1.EnvVar{
-										Name: "BOSH_CA_CERT",
-										ValueFrom: &corev1.EnvVarSource{
-											SecretKeyRef: &corev1.SecretKeySelector{
-												LocalObjectReference: corev1.LocalObjectReference{
-													Name: directorSecretName,
-												},
-												Key: "ca",
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		}
-		if err := controllerutil.SetControllerReference(instance, job, r.Scheme); err != nil {
+	job := &batchv1.Job{}
+	err = r.Client.Get(ctx, types.NamespacedName{Namespace: instance.Namespace, Name: instance.JobName(director)}, job)
+	if err == nil {
+		// job exists; we may have gotten a reconcile request based on our watch(es)
+		instance.Status.Ready, instance.Status.State = v1alpha1.DetermineReadiness(job)
+		if err := r.Update(ctx, instance); err != nil {
 			return ctrl.Result{}, err
 		}
 
-		err = r.Client.Create(context.TODO(), job)
-		if err != nil {
+	} else if !errors.IsNotFound(err) {
+		return ctrl.Result{}, err
+
+	} else {
+		instance.Status.Ready, instance.Status.State = v1alpha1.DetermineReadiness(nil)
+		if err := r.Update(ctx, instance); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		// create the Job resource, in all of its glory
+		job := instance.Job(director)
+		if err := controllerutil.SetControllerReference(instance, job, r.Scheme); err != nil {
+			return ctrl.Result{}, err
+		}
+		if err = r.Client.Create(ctx, job); err != nil {
 			return ctrl.Result{}, err
 		}
 
@@ -188,5 +115,6 @@ func (r *BOSHStemcellReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 func (r *BOSHStemcellReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.BOSHStemcell{}).
+		Owns(&batchv1.Job{}).
 		Complete(r)
 }

@@ -13,6 +13,9 @@ spec:
     kind: BOSHStemcell
     listKind: BOSHStemcellList
     plural: boshstemcells
+    shortNames:
+    - stemcell
+    - bsc
     singular: boshstemcell
   scope: Namespaced
   validation:
@@ -24,6 +27,26 @@ spec:
             of an object. Servers should convert recognized schemas to the latest
             internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
+        dependencies:
+          properties:
+            dependsOn:
+              items:
+                properties:
+                  config:
+                    type: string
+                  deployment:
+                    type: string
+                  status:
+                    type: string
+                  stemcell:
+                    type: string
+                required:
+                - status
+                type: object
+              type: array
+            retryAfter:
+              type: integer
+          type: object
         kind:
           description: 'Kind is a string value representing the REST resource this
             object represents. Servers may infer this from the endpoint the client
@@ -34,27 +57,33 @@ spec:
         spec:
           description: BOSHStemcellSpec defines the desired state of BOSHStemcell
           properties:
+            director:
+              type: string
             fix:
               type: boolean
             name:
               type: string
             sha1:
               type: string
-            uploadTo:
-              additionalProperties:
-                type: string
-              type: object
             url:
               type: string
             version:
               type: string
           required:
+          - director
           - sha1
-          - uploadTo
           - url
           type: object
         status:
           description: BOSHStemcellStatus defines the observed state of BOSHStemcell
+          properties:
+            ready:
+              type: boolean
+            state:
+              type: string
+          required:
+          - ready
+          - state
           type: object
       type: object
   version: v1alpha1

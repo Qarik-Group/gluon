@@ -13,6 +13,8 @@ spec:
     kind: BOSHConfig
     listKind: BOSHConfigList
     plural: boshconfigs
+    shortNames:
+    - bcc
     singular: boshconfig
   scope: Namespaced
   validation:
@@ -24,6 +26,26 @@ spec:
             of an object. Servers should convert recognized schemas to the latest
             internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
+        dependencies:
+          properties:
+            dependsOn:
+              items:
+                properties:
+                  config:
+                    type: string
+                  deployment:
+                    type: string
+                  status:
+                    type: string
+                  stemcell:
+                    type: string
+                required:
+                - status
+                type: object
+              type: array
+            retryAfter:
+              type: integer
+          type: object
         kind:
           description: 'Kind is a string value representing the REST resource this
             object represents. Servers may infer this from the endpoint the client
@@ -34,21 +56,27 @@ spec:
         spec:
           description: BOSHConfigSpec defines the desired state of BOSHConfig
           properties:
-            applyTo:
-              additionalProperties:
-                type: string
-              type: object
             config:
+              type: string
+            director:
               type: string
             type:
               type: string
           required:
-          - applyTo
           - config
+          - director
           - type
           type: object
         status:
           description: BOSHConfigStatus defines the observed state of BOSHConfig
+          properties:
+            ready:
+              type: boolean
+            state:
+              type: string
+          required:
+          - ready
+          - state
           type: object
       type: object
   version: v1alpha1
