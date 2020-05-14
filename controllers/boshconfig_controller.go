@@ -75,31 +75,38 @@ func (r *BOSHConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	log.Info("checking for backing config map", "configmap", instance.Name)
 	config := &corev1.ConfigMap{}
 	err = r.Client.Get(ctx, types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name}, config)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			log.Info("creating backing config map", "configmap", instance.Name)
-			config = &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: instance.Namespace,
-					Name:      instance.Name,
-				},
-				Data: map[string]string{
-					"config.yml": instance.Spec.Config,
-				},
-			}
+	if err == nil {
+		log.Info("updating backing config map", "configmap", instance.Name)
+		config.Data["config.yml"] = instance.Spec.Config
 
-			if err := controllerutil.SetControllerReference(instance, config, r.Scheme); err != nil {
-				return ctrl.Result{}, err
-			}
-
-			err = r.Client.Create(ctx, config)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-
-		} else {
+		err = r.Client.Update(ctx, config)
+		if err != nil {
 			return ctrl.Result{}, err
 		}
+
+	} else if errors.IsNotFound(err) {
+		log.Info("creating backing config map", "configmap", instance.Name)
+		config = &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: instance.Namespace,
+				Name:      instance.Name,
+			},
+			Data: map[string]string{
+				"config.yml": instance.Spec.Config,
+			},
+		}
+
+		if err := controllerutil.SetControllerReference(instance, config, r.Scheme); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		err = r.Client.Create(ctx, config)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+	} else {
+		return ctrl.Result{}, err
 	}
 
 	// retrieve our upstream director
