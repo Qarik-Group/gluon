@@ -1,0 +1,86 @@
+#!/bin/bash
+set -eu
+
+echo "##################################"
+echo "#"
+echo "# Cloning deployment from"
+echo "#   $UPSTREAM_REPO"
+echo "#   ref $UPSTREAM_REF"
+echo "#"
+echo "##################################"
+
+git clone $UPSTREAM_REPO deployment
+cd deployment
+git checkout $UPSTREAM_REF
+echo; echo
+
+echo "##################################"
+echo "#"
+echo "# Deploying $UPSTREAM_ENTRYPOINT..."
+echo "#"
+echo "##################################"
+echo; echo
+
+if [[ -n ${BOSH_ENVIRONMENT:-} ]]; then
+  set -x
+  envwrap bosh deploy -n $UPSTREAM_ENTRYPOINT \
+    --vars-env=GLUON \
+    --tty \
+    "$@"
+  exit $?
+fi
+
+set -x
+envwrap bosh create-env -n $UPSTREAM_ENTRYPOINT \
+  --state=/bosh/state/state.json \
+  --vars-store=/bosh/state/creds.yml \
+  --vars-env=GLUON \
+  --tty \
+  "$@"
+set +x
+echo; echo
+
+echo "##################################"
+echo "#"
+echo "# Saving credentials / state file"
+echo "#   to Secret $CREDS_SECRET_NAME"
+echo "#  and ConfigMap $CREDS_STATE_FILE_CONFIG_MAP"
+echo "#  (respectively)"
+echo "#"
+echo "##################################"
+echo; echo
+
+kubectl config set-cluster here \
+  --server=https://kubernetes.default \
+  --certificate-authority=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+kubectl config set-credentials sa \
+  --token=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+kubectl config set-context here \
+  --cluster=here \
+  --user=sa
+
+kubectl apply -f <(cat <<EOF
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: $POD_NAMESPACE
+  name:      $CREDS_STATE_FILE_CONFIG_MAP
+data:
+  state.json: |
+$(cat /bosh/state/state.json | sed -e 's/^/    /')
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  namespace: $POD_NAMESPACE
+  name:      $CREDS_SECRET_NAME
+stringData:
+  endpoint: https://$GLUON_internal_ip:25555
+  username: admin
+  password: $(bosh int /bosh/state/creds.yml --path /admin_password)
+  ca: |
+$(bosh int /bosh/state/creds.yml --path /director_ssl/ca | sed -e 's/^/    /')
+EOF
+)
+exit 0

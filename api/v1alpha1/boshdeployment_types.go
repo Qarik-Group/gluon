@@ -281,8 +281,8 @@ func (bd *BOSHDeployment) job(verb string) *batchv1.Job {
 					Containers: []corev1.Container{
 						corev1.Container{
 							Name:            "deploy",
-							Image:           "starkandwayne/bosh-create-env:latest",
-							ImagePullPolicy: corev1.PullAlways,
+							Image:           GluonImage,
+							ImagePullPolicy: GluonPullPolicy,
 							VolumeMounts:    mounts,
 							Command:         command,
 							Env:             vars,

@@ -113,8 +113,8 @@ func (bs *BOSHStemcell) Job(director *BOSHDeployment) *batchv1.Job {
 					Containers: []corev1.Container{
 						corev1.Container{
 							Name:            "upload",
-							Image:           "starkandwayne/bosh-create-env:latest",
-							ImagePullPolicy: corev1.PullAlways,
+							Image:           GluonImage,
+							ImagePullPolicy: GluonPullPolicy,
 							Command:         command,
 							Env: []corev1.EnvVar{
 								corev1.EnvVar{

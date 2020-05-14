@@ -78,3 +78,8 @@ CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
+
+apparatus:
+	cd docker/gluon-apparatus && make docker-build
+release-apparatus:
+	cd docker/gluon-apparatus && make release

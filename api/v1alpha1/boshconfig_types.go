@@ -114,8 +114,8 @@ func (bc *BOSHConfig) Job(director *BOSHDeployment) *batchv1.Job {
 					Containers: []corev1.Container{
 						corev1.Container{
 							Name:            "update-config",
-							Image:           "starkandwayne/bosh-create-env:latest",
-							ImagePullPolicy: corev1.PullAlways,
+							Image:           GluonImage,
+							ImagePullPolicy: GluonPullPolicy,
 							Command:         command,
 							VolumeMounts: []corev1.VolumeMount{
 								corev1.VolumeMount{

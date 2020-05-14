@@ -1,0 +1,7 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+for (keys %ENV) {
+  $ENV{$_} =~ s/\n/\n\n/g if m/^GLUON_/;
+}
+exec @ARGV;
