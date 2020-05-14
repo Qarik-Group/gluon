@@ -212,20 +212,21 @@ func HasFinalizer(o metav1.Object, finalizer string) bool {
 func (r *BOSHDeploymentReconciler) ResolveVariableSources(bd *v1alpha1.BOSHDeployment, job *batchv1.Job) error {
 	ctx := context.Background()
 
-	// set up variable source references
-	type secRef struct {
-		secret string
-		key    string
+	type ref struct {
+		secret    string
+		configmap string
+		key       string
+		literal   string
 	}
-	secRefs := make(map[string]secRef)
-	cmRefs := make(map[string]string)
+
+	// set up variable source references
+	refs := make(map[string]ref)
 	for _, src := range bd.Spec.Vars {
 		// name/value literal
 		if src.Name != "" {
-			job.Spec.Template.Spec.Containers[0].Env = append(job.Spec.Template.Spec.Containers[0].Env, corev1.EnvVar{
-				Name:  fmt.Sprintf("GLUON_%s", src.Name),
-				Value: src.Value,
-			})
+			var rf ref
+			rf.literal = src.Value
+			refs[src.Name] = rf
 			continue
 		}
 
@@ -237,8 +238,22 @@ func (r *BOSHDeploymentReconciler) ResolveVariableSources(bd *v1alpha1.BOSHDeplo
 				return err
 			}
 
-			for k := range cm.Data {
-				cmRefs[k] = src.ConfigMap.Name
+			if src.ConfigMap.MapKeys != nil {
+				// map just the keys to their variables
+				for k, variable := range src.ConfigMap.MapKeys {
+					var rf ref
+					rf.configmap = src.ConfigMap.Name
+					rf.key = k
+					refs[variable] = rf
+				}
+			} else {
+				// take everything as a 1:1 key->var relation
+				for k := range cm.Data {
+					var rf ref
+					rf.configmap = src.ConfigMap.Name
+					rf.key = k
+					refs[k] = rf
+				}
 			}
 			continue
 		}
@@ -254,53 +269,58 @@ func (r *BOSHDeploymentReconciler) ResolveVariableSources(bd *v1alpha1.BOSHDeplo
 			if src.Secret.MapKeys != nil {
 				// map just the keys to their variables
 				for k, variable := range src.Secret.MapKeys {
-					secRefs[variable] = secRef{
-						secret: src.Secret.Name,
-						key:    k,
-					}
+					var rf ref
+					rf.secret = src.Secret.Name
+					rf.key = k
+					refs[variable] = rf
 				}
 			} else {
 				// take everything as a 1:1 key->var relation
 				for k := range secret.Data {
-					secRefs[k] = secRef{
-						secret: src.Secret.Name,
-						key:    k,
-					}
+					var rf ref
+					rf.secret = src.Secret.Name
+					rf.key = k
+					refs[k] = rf
 				}
 			}
 			continue
 		}
 	}
 
-	// resolve final ConfigMap var references
-	for k, src := range cmRefs {
-		job.Spec.Template.Spec.Containers[0].Env = append(job.Spec.Template.Spec.Containers[0].Env, corev1.EnvVar{
-			Name: fmt.Sprintf("GLUON_%s", k),
-			ValueFrom: &corev1.EnvVarSource{
+	// resolve final var references
+	vars := job.Spec.Template.Spec.Containers[0].Env
+
+	for k, rf := range refs {
+		var ev corev1.EnvVar
+		ev.Name = fmt.Sprintf("GLUON_%s", k)
+
+		if rf.literal != "" {
+			ev.Value = rf.literal
+
+		} else if rf.configmap != "" {
+			ev.ValueFrom = &corev1.EnvVarSource{
 				ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: src,
+						Name: rf.configmap,
 					},
-					Key: k,
+					Key: rf.key,
 				},
-			},
-		})
-	}
+			}
 
-	// resolve final Secret var references
-	for k, src := range secRefs {
-		job.Spec.Template.Spec.Containers[0].Env = append(job.Spec.Template.Spec.Containers[0].Env, corev1.EnvVar{
-			Name: fmt.Sprintf("GLUON_%s", k),
-			ValueFrom: &corev1.EnvVarSource{
+		} else if rf.secret != "" {
+			ev.ValueFrom = &corev1.EnvVarSource{
 				SecretKeyRef: &corev1.SecretKeySelector{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: src.secret,
+						Name: rf.secret,
 					},
-					Key: src.key,
+					Key: rf.key,
 				},
-			},
-		})
+			}
+		}
+
+		vars = append(vars, ev)
 	}
 
+	job.Spec.Template.Spec.Containers[0].Env = vars
 	return nil
 }

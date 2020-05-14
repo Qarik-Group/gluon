@@ -37,7 +37,8 @@ type VariableSource struct {
 
 // ConfigMapVariableSource ties a VariableSource to a ConfigMap
 type ConfigMapVariableSource struct {
-	Name string `json:"name"`
+	Name    string            `json:"name"`
+	MapKeys map[string]string `json:"mapKeys,omitempty"`
 }
 
 // SecretVariableSource ties a VariableSource to a Secret

@@ -77,6 +77,10 @@ spec:
                     description: ConfigMapVariableSource ties a VariableSource to
                       a ConfigMap
                     properties:
+                      mapKeys:
+                        additionalProperties:
+                          type: string
+                        type: object
                       name:
                         type: string
                     required:
