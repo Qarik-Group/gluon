@@ -245,6 +245,23 @@ func (bd *BOSHDeployment) job(verb string) *batchv1.Job {
 		command[1+i*2+1] = file
 	}
 
+	volumes := []corev1.Volume{}
+	mounts := []corev1.VolumeMount{}
+	if bd.Spec.Director == "" {
+		volumes = append(volumes, corev1.Volume{
+			Name: "state",
+			VolumeSource: corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: bd.StateVolumeName(),
+				},
+			},
+		})
+		mounts = append(mounts, corev1.VolumeMount{
+			Name:      "state",
+			MountPath: "/bosh/state",
+		})
+	}
+
 	// create the Job resource, in all of its glory
 	var one int32 = 1
 	return &batchv1.Job{
@@ -260,29 +277,15 @@ func (bd *BOSHDeployment) job(verb string) *batchv1.Job {
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
 					RestartPolicy: corev1.RestartPolicyNever,
-					Volumes: []corev1.Volume{
-						corev1.Volume{
-							Name: "state",
-							VolumeSource: corev1.VolumeSource{
-								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-									ClaimName: bd.StateVolumeName(),
-								},
-							},
-						},
-					},
+					Volumes:       volumes,
 					Containers: []corev1.Container{
 						corev1.Container{
 							Name:            "deploy",
 							Image:           "starkandwayne/bosh-create-env:latest",
 							ImagePullPolicy: corev1.PullAlways,
-							VolumeMounts: []corev1.VolumeMount{
-								corev1.VolumeMount{
-									Name:      "state",
-									MountPath: "/bosh/state",
-								},
-							},
-							Command: command,
-							Env:     vars,
+							VolumeMounts:    mounts,
+							Command:         command,
+							Env:             vars,
 						},
 					},
 				},

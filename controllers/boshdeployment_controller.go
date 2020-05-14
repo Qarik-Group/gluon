@@ -131,24 +131,26 @@ func (r *BOSHDeploymentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 	}
 
 	// first we make a volume for our state files / creds / vars
-	log.Info("checking for persistent state volume", "pvc", instance.StateVolumeName())
-	stateVolume := &corev1.PersistentVolumeClaim{}
-	err = r.Client.Get(ctx, types.NamespacedName{Namespace: req.Namespace, Name: instance.StateVolumeName()}, stateVolume)
-	if err != nil && errors.IsNotFound(err) {
-		log.Info("creating persistent volume claim", "pvc", instance.StateVolumeName())
-		stateVolume = instance.StateVolume()
-		if err := controllerutil.SetControllerReference(instance, stateVolume, r.Scheme); err != nil {
+	if instance.Spec.Director == "" {
+		log.Info("checking for persistent state volume", "pvc", instance.StateVolumeName())
+		stateVolume := &corev1.PersistentVolumeClaim{}
+		err = r.Client.Get(ctx, types.NamespacedName{Namespace: req.Namespace, Name: instance.StateVolumeName()}, stateVolume)
+		if err != nil && errors.IsNotFound(err) {
+			log.Info("creating persistent volume claim", "pvc", instance.StateVolumeName())
+			stateVolume = instance.StateVolume()
+			if err := controllerutil.SetControllerReference(instance, stateVolume, r.Scheme); err != nil {
+				return ctrl.Result{}, err
+			}
+			if err = r.Client.Create(ctx, stateVolume); err != nil {
+				return ctrl.Result{}, err
+			}
+
+			// pvc created.
+			// (but we still have more work to do!)
+
+		} else if err != nil {
 			return ctrl.Result{}, err
 		}
-		if err = r.Client.Create(ctx, stateVolume); err != nil {
-			return ctrl.Result{}, err
-		}
-
-		// pvc created.
-		// (but we still have more work to do!)
-
-	} else if err != nil {
-		return ctrl.Result{}, err
 	}
 
 	// then we look for the deployment job
