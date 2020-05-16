@@ -10,4 +10,4 @@ platform operations.
 
 **Watch the Introductory Video**
 
-<iframe width="757" height="426" src="https://www.youtube.com/embed/SVjxC3wMjMg" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+[![Gluon Introductory Video](http://img.youtube.com/vi/SVjxC3wMjMg/0.jpg)](http://www.youtube.com/watch?v=SVjxC3wMjMg "Gluon Introductory Video")
