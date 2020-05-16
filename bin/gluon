@@ -1,0 +1,77 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+
+use Getopt::Long qw/GetOptionsFromArray/;
+my (@my_args, @bosh_args);
+my $bosh = undef;
+for (@ARGV) {
+	if (m/^@(.*)/) {
+		$bosh = $1;
+		next;
+	}
+	if ($bosh) {
+		push @bosh_args, $_;
+	} else {
+		push @my_args, $_;
+	}
+}
+
+my %OPT;
+GetOptionsFromArray(\@my_args, \%OPT, qw/
+  pretty
+/);
+
+if ($bosh) {
+  $ENV{BOSH_ENVIRONMENT}   = `kubectl get secret $bosh-secrets -o template='{{.data.endpoint | base64decode}}'`;
+  $ENV{BOSH_CLIENT}        = `kubectl get secret $bosh-secrets -o template='{{.data.username | base64decode}}'`;
+  $ENV{BOSH_CLIENT_SECRET} = `kubectl get secret $bosh-secrets -o template='{{.data.password | base64decode}}'`;
+  $ENV{BOSH_CA_CERT}       = do {
+    open my $fh, "-|", "kubectl get secret $bosh-secrets -o template='{{.data.ca | base64decode}}'";
+    local $/; <$fh> };
+  shift;
+  if ($bosh_args[0] ne 'bosh') {
+    unshift @bosh_args, 'bosh';
+  }
+  exec @bosh_args;
+  die "Unable to exec bosh!\n";
+}
+
+if ($my_args[0] eq 'envrc') {
+  my $type = $my_args[1] || '';
+  my $name = $my_args[2] || '';
+
+  if ($type eq '' || $name eq '') {
+    die "USAGE: $0 envrc [--pretty] TYPE NAME\n";
+  }
+  if ($type ne 'bosh') {
+    die "Only the 'bosh' TYPE is implemented for now...\n";
+  }
+
+  my $env = `kubectl get secret $name-secrets -o template='{{.data.endpoint | base64decode}}'`;
+  my $user = `kubectl get secret $name-secrets -o template='{{.data.username | base64decode}}'`;
+  my $pass = `kubectl get secret $name-secrets -o template='{{.data.password | base64decode}}'`;
+  my $ca = do {
+    open my $fh, "-|", "kubectl get secret $name-secrets -o template='{{.data.ca | base64decode}}'";
+    local $/; <$fh> };
+
+  if ($OPT{pretty}) {
+    print "Endpoint: $env\n";
+    print "Username: $user\n";
+    print "Password: $pass\n";
+    print "CA Certificate:\n";
+    $ca =~ s/\s$//s;
+    for my $line (split(/\n/, $ca)) {
+      print "  $line\n";
+    }
+    print "\n";
+    exit 0;
+
+  } else {
+    print "BOSH_ENVIRONMENT=\"$env\"\n";
+    print "BOSH_CLIENT=\"$user\"\n";
+    print "BOSH_CLIENT_SECRET=\"$pass\"\n";
+    print "BOSH_CA_CERT=\"$ca\"\n";
+  }
+  exit 0;
+}
