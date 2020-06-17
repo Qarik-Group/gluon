@@ -1,0 +1,794 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: gluon-controller-system
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: gluon-controller-system/gluon-controller-serving-cert
+    controller-gen.kubebuilder.io/version: v0.2.5
+  creationTimestamp: null
+  name: boshconfigs.gluon.starkandwayne.com
+spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        caBundle: Cg==
+        service:
+          name: gluon-controller-webhook-service
+          namespace: gluon-controller-system
+          path: /convert
+      conversionReviewVersions:
+      - v1
+      - v1beta1
+  group: gluon.starkandwayne.com
+  names:
+    kind: BOSHConfig
+    listKind: BOSHConfigList
+    plural: boshconfigs
+    shortNames:
+    - bcc
+    singular: boshconfig
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: BOSHConfig is the Schema for the boshconfigs API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          dependencies:
+            properties:
+              dependsOn:
+                items:
+                  properties:
+                    config:
+                      type: string
+                    deployment:
+                      type: string
+                    status:
+                      type: string
+                    stemcell:
+                      type: string
+                  type: object
+                type: array
+              retryAfter:
+                type: integer
+            type: object
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: BOSHConfigSpec defines the desired state of BOSHConfig
+            properties:
+              config:
+                type: string
+              director:
+                type: string
+              type:
+                type: string
+            required:
+            - config
+            - director
+            - type
+            type: object
+          status:
+            description: BOSHConfigStatus defines the observed state of BOSHConfig
+            properties:
+              ready:
+                type: boolean
+              state:
+                type: string
+            required:
+            - ready
+            - state
+            type: object
+        type: object
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: gluon-controller-system/gluon-controller-serving-cert
+    controller-gen.kubebuilder.io/version: v0.2.5
+  creationTimestamp: null
+  name: boshdeployments.gluon.starkandwayne.com
+spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        caBundle: Cg==
+        service:
+          name: gluon-controller-webhook-service
+          namespace: gluon-controller-system
+          path: /convert
+      conversionReviewVersions:
+      - v1
+      - v1beta1
+  group: gluon.starkandwayne.com
+  names:
+    kind: BOSHDeployment
+    listKind: BOSHDeploymentList
+    plural: boshdeployments
+    shortNames:
+    - bosh
+    singular: boshdeployment
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: BOSHDeployment is the Schema for the boshdeployments API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          dependencies:
+            properties:
+              dependsOn:
+                items:
+                  properties:
+                    config:
+                      type: string
+                    deployment:
+                      type: string
+                    status:
+                      type: string
+                    stemcell:
+                      type: string
+                  type: object
+                type: array
+              retryAfter:
+                type: integer
+            type: object
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: BOSHDeploymentSpec defines the desired state of BOSHDeployment
+            properties:
+              director:
+                type: string
+              entrypoint:
+                type: string
+              ops:
+                items:
+                  type: string
+                type: array
+              ref:
+                type: string
+              repo:
+                type: string
+              vars:
+                items:
+                  description: VariableSource defines where variables for a deployment
+                    come from
+                  properties:
+                    configMap:
+                      description: ConfigMapVariableSource ties a VariableSource to
+                        a ConfigMap
+                      properties:
+                        mapKeys:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        name:
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    name:
+                      type: string
+                    secret:
+                      description: SecretVariableSource ties a VariableSource to a
+                        Secret
+                      properties:
+                        mapKeys:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        name:
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    value:
+                      type: string
+                  type: object
+                type: array
+            type: object
+          status:
+            description: BOSHDeploymentStatus defines the observed state of BOSHDeployment
+            properties:
+              ready:
+                type: boolean
+              state:
+                type: string
+            required:
+            - ready
+            - state
+            type: object
+        type: object
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: gluon-controller-system/gluon-controller-serving-cert
+    controller-gen.kubebuilder.io/version: v0.2.5
+  creationTimestamp: null
+  name: boshstemcells.gluon.starkandwayne.com
+spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        caBundle: Cg==
+        service:
+          name: gluon-controller-webhook-service
+          namespace: gluon-controller-system
+          path: /convert
+      conversionReviewVersions:
+      - v1
+      - v1beta1
+  group: gluon.starkandwayne.com
+  names:
+    kind: BOSHStemcell
+    listKind: BOSHStemcellList
+    plural: boshstemcells
+    shortNames:
+    - stemcell
+    - bsc
+    singular: boshstemcell
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: BOSHStemcell is the Schema for the boshstemcells API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          dependencies:
+            properties:
+              dependsOn:
+                items:
+                  properties:
+                    config:
+                      type: string
+                    deployment:
+                      type: string
+                    status:
+                      type: string
+                    stemcell:
+                      type: string
+                  type: object
+                type: array
+              retryAfter:
+                type: integer
+            type: object
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: BOSHStemcellSpec defines the desired state of BOSHStemcell
+            properties:
+              director:
+                type: string
+              fix:
+                type: boolean
+              name:
+                type: string
+              sha1:
+                type: string
+              url:
+                type: string
+              version:
+                type: string
+            required:
+            - director
+            - sha1
+            - url
+            type: object
+          status:
+            description: BOSHStemcellStatus defines the observed state of BOSHStemcell
+            properties:
+              ready:
+                type: boolean
+              state:
+                type: string
+            required:
+            - ready
+            - state
+            type: object
+        type: object
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: gluon-controller-system/gluon-controller-serving-cert
+  creationTimestamp: null
+  name: gluon-controller-mutating-webhook-configuration
+webhooks:
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: gluon-controller-webhook-service
+      namespace: gluon-controller-system
+      path: /mutate-gluon-starkandwayne-com-v1alpha1-boshconfig
+  failurePolicy: Fail
+  name: mboshconfig.kb.io
+  rules:
+  - apiGroups:
+    - gluon.starkandwayne.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - boshconfigs
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: gluon-controller-webhook-service
+      namespace: gluon-controller-system
+      path: /mutate-gluon-starkandwayne-com-v1alpha1-boshdeployment
+  failurePolicy: Fail
+  name: mboshdeployment.kb.io
+  rules:
+  - apiGroups:
+    - gluon.starkandwayne.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - boshdeployments
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: gluon-controller-webhook-service
+      namespace: gluon-controller-system
+      path: /mutate-gluon-starkandwayne-com-v1alpha1-boshstemcell
+  failurePolicy: Fail
+  name: mboshstemcell.kb.io
+  rules:
+  - apiGroups:
+    - gluon.starkandwayne.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - boshstemcells
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: gluon-controller-leader-election-role
+  namespace: gluon-controller-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - configmaps/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: gluon-controller-manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - persistentvolumeclaims
+  - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - jobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - gluon.starkandwayne.com
+  resources:
+  - boshconfigs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - gluon.starkandwayne.com
+  resources:
+  - boshconfigs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gluon.starkandwayne.com
+  resources:
+  - boshdeployments
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - gluon.starkandwayne.com
+  resources:
+  - boshdeployments/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gluon.starkandwayne.com
+  resources:
+  - boshstemcells
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - gluon.starkandwayne.com
+  resources:
+  - boshstemcells/status
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: gluon-controller-proxy-role
+rules:
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: gluon-controller-metrics-reader
+rules:
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gluon-controller-leader-election-rolebinding
+  namespace: gluon-controller-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: gluon-controller-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: gluon-controller-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: gluon-controller-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: gluon-controller-manager-role
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: gluon-controller-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: gluon-controller-proxy-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: gluon-controller-proxy-role
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: gluon-controller-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: gluon-controller-controller-manager-metrics-service
+  namespace: gluon-controller-system
+spec:
+  ports:
+  - name: https
+    port: 8443
+    targetPort: https
+  selector:
+    control-plane: controller-manager
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gluon-controller-webhook-service
+  namespace: gluon-controller-system
+spec:
+  ports:
+  - port: 443
+    targetPort: 9443
+  selector:
+    control-plane: controller-manager
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: gluon-controller-controller-manager
+  namespace: gluon-controller-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+  template:
+    metadata:
+      labels:
+        control-plane: controller-manager
+    spec:
+      containers:
+      - args:
+        - --secure-listen-address=0.0.0.0:8443
+        - --upstream=http://127.0.0.1:8080/
+        - --logtostderr=true
+        - --v=10
+        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.5.0
+        name: kube-rbac-proxy
+        ports:
+        - containerPort: 8443
+          name: https
+      - args:
+        - --metrics-addr=127.0.0.1:8080
+        - --enable-leader-election
+        command:
+        - /manager
+        image: starkandwayne/gluon-controller:latest
+        name: manager
+        ports:
+        - containerPort: 9443
+          name: webhook-server
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 100m
+            memory: 30Mi
+          requests:
+            cpu: 100m
+            memory: 20Mi
+        volumeMounts:
+        - mountPath: /tmp/k8s-webhook-server/serving-certs
+          name: cert
+          readOnly: true
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: webhook-server-cert
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: gluon-controller-serving-cert
+  namespace: gluon-controller-system
+spec:
+  dnsNames:
+  - gluon-controller-webhook-service.gluon-controller-system.svc
+  - gluon-controller-webhook-service.gluon-controller-system.svc.cluster.local
+  issuerRef:
+    kind: ClusterIssuer
+    name: internal-ca
+  secretName: webhook-server-cert
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Issuer
+metadata:
+  name: gluon-controller-selfsigned-issuer
+  namespace: gluon-controller-system
+spec:
+  selfSigned: {}
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: gluon-controller-system/gluon-controller-serving-cert
+  creationTimestamp: null
+  name: gluon-controller-validating-webhook-configuration
+webhooks:
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: gluon-controller-webhook-service
+      namespace: gluon-controller-system
+      path: /validate-gluon-starkandwayne-com-v1alpha1-boshconfig
+  failurePolicy: Fail
+  name: vboshconfig.kb.io
+  rules:
+  - apiGroups:
+    - gluon.starkandwayne.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - boshconfigs
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: gluon-controller-webhook-service
+      namespace: gluon-controller-system
+      path: /validate-gluon-starkandwayne-com-v1alpha1-boshdeployment
+  failurePolicy: Fail
+  name: vboshdeployment.kb.io
+  rules:
+  - apiGroups:
+    - gluon.starkandwayne.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - boshdeployments
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: gluon-controller-webhook-service
+      namespace: gluon-controller-system
+      path: /validate-gluon-starkandwayne-com-v1alpha1-boshstemcell
+  failurePolicy: Fail
+  name: vboshstemcell.kb.io
+  rules:
+  - apiGroups:
+    - gluon.starkandwayne.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - boshstemcells
