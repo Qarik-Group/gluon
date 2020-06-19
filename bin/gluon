@@ -37,6 +37,12 @@ if ($bosh) {
   die "Unable to exec bosh!\n";
 }
 
+if (@my_args == 0) {
+  print STDERR "USAGE: $0 envrc [--pretty] TYPE NAME\n";
+  print STDERR "USAGE: $0 \@env ... bosh commands ...\n";
+  exit 1;
+}
+
 if ($my_args[0] eq 'envrc') {
   my $type = $my_args[1] || '';
   my $name = $my_args[2] || '';
